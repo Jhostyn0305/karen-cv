@@ -1,0 +1,17 @@
+---
+import { comparisonViews } from '../data/evidence-metadata';
+const first = comparisonViews[0];
+const source = `/images/evidencias/${first.file}`;
+---
+<div class="comparison-selector" role="group" aria-label="Seleccionar registro para comparar">
+  {comparisonViews.map((item, index) => <button type="button" data-comparison-source={`/images/evidencias/${item.file}`} data-left-view={item.left} data-right-view={item.right} data-comparison-title={item.title} aria-pressed={index === 0 ? 'true' : 'false'}>{item.title}</button>)}
+</div>
+<div class="comparison comparison-clinical" style="--split: 50%">
+  <svg class="comparison-photo comparison-before-photo" viewBox={first.left} role="img" aria-label="Vista izquierda de la composición original" preserveAspectRatio="xMidYMid meet"><image href={source} width="1280" height="1280" /></svg>
+  <div class="comparison-after"><svg class="comparison-photo comparison-after-photo" viewBox={first.right} role="img" aria-label="Vista derecha de la composición original" preserveAspectRatio="xMidYMid meet"><image href={source} width="1280" height="1280" /></svg></div>
+  <span class="compare-tag tag-before">Toma 1</span><span class="compare-tag tag-after">Toma 2</span>
+  <div class="comparison-divider" aria-hidden="true"><span>↔</span></div>
+  <input id="comparison-range" class="comparison-range" type="range" min="0" max="100" value="50" aria-label="Revelar la segunda toma" aria-valuetext="50% de la segunda toma visible" aria-describedby="comparison-help" />
+</div>
+<div class="comparison-controls"><p id="comparison-help">Arrastra para comparar <span aria-hidden="true">↔</span><span class="sr-only">. También puedes usar las flechas del teclado.</span></p><div><button type="button" data-compare="0">Ver toma 1</button><button type="button" data-compare="100">Ver toma 2</button></div></div>
+<div class="case-caption"><span id="comparison-caption" aria-live="polite">{first.title}</span><a id="comparison-original" href={source} target="_blank" rel="noopener noreferrer">Ver composición original ↗</a></div>

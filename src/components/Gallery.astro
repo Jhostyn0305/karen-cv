@@ -1,0 +1,27 @@
+---
+import Icon from './Icon.astro';
+import Comparison from './Comparison.astro';
+import { getCases } from '../data/portfolio';
+const featured = ['1.jpg', '4.jpg', '8.jpg'];
+const cases = getCases().sort((a, b) => {
+  const priority = (id: string) => featured.includes(id) ? featured.indexOf(id) : featured.length;
+  return priority(a.id) - priority(b.id);
+});
+const categories = [...new Set(cases.map(item => item.category))];
+---
+<section class="gallery-section section" id="galeria">
+  <div class="section-heading reveal"><div><p class="eyebrow section-label">03 — EVIDENCIAS CLÍNICAS</p><h2>Trabajos realizados</h2></div><p>Una selección del archivo fotográfico.</p></div>
+  <div class="gallery-toolbar">
+    <div class="filters" role="group" aria-label="Filtrar portafolio"><button class="filter active" data-filter="Todos" aria-pressed="true">Todos</button>{categories.map(category => <button class="filter" data-filter={category} aria-pressed="false">{category}</button>)}</div>
+    <span class="gallery-count" role="status">{cases.length} registros fotográficos</span>
+  </div>
+  <div class="gallery-grid" id="gallery-grid">{cases.map((item, index) =>
+    <button class="gallery-card" data-category={item.category} data-title={item.title} data-description={item.description} data-image={item.image} data-alt={item.alt} aria-label={`Ampliar ${item.title}`}>
+      <div class="gallery-image clinical-image"><img src={item.image} width={item.width} height={item.height} alt={item.alt} loading="lazy" decoding="async" /><span class="gallery-open"><Icon name="diagonal" /></span></div>
+      <div class="gallery-caption"><div><span class="eyebrow">{item.category}</span><h3>{item.title}</h3></div><span class="gallery-index">{String(index + 1).padStart(2, '0')}</span></div>
+    </button>
+  )}</div>
+  <div class="gallery-pagination"><p class="gallery-progress">Una colección de miradas, en constante crecimiento.</p><button class="button gallery-more" type="button" aria-controls="gallery-grid" hidden>Ver más registros <span aria-hidden="true">↓</span></button></div>
+  <p class="gallery-note">Abre una imagen para ampliar el detalle y recorrer los registros originales.</p>
+  <details class="comparison-disclosure" id="resultados"><summary><span><strong>Comparar registros fotográficos</strong><span>Explora dos tomas con el deslizador interactivo.</span></span><span class="details-indicator" aria-hidden="true">+</span></summary><div class="results-section"><div class="results-copy"><h3>Dos vistas de un mismo registro</h3><p>Selecciona un registro y arrastra la barra. Los ángulos y la iluminación varían entre las tomas.</p></div><div class="comparison-column"><Comparison /></div></div></details>
+</section>

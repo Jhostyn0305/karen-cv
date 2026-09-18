@@ -1,0 +1,33 @@
+{
+  "name": "web",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev --background",
+    "import:evidencias": "node scripts/import-evidence.mjs",
+    "build": "astro build",
+    "check": "astro check",
+    "test": "playwright test",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@fontsource/cormorant-garamond": "^5.3.0",
+    "@fontsource/dm-sans": "^5.3.0",
+    "astro": "^7.3.3",
+    "gsap": "^3.15.0",
+    "three": "^0.186.0"
+  },
+  "allowScripts": {
+    "esbuild": true
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "@playwright/test": "^1.63.0",
+    "@types/three": "^0.186.0",
+    "typescript": "^6.0.3"
+  }
+}

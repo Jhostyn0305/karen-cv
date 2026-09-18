@@ -1,0 +1,124 @@
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+export function createToothScene(host: HTMLElement, reducedMotion: MediaQueryList) {
+  let renderer: THREE.WebGLRenderer;
+  try { renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'low-power' }); }
+  catch { return; }
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.6));
+  renderer.setClearColor(0x000000, 0);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 0.85;
+  renderer.domElement.setAttribute('aria-hidden', 'true');
+  host.appendChild(renderer.domElement);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 40);
+  camera.position.set(0, 0.05, 10);
+  const environment = new RoomEnvironment();
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const environmentMap = pmrem.fromScene(environment, 0.04);
+  scene.environment = environmentMap.texture;
+  environment.dispose();
+  pmrem.dispose();
+  scene.add(new THREE.HemisphereLight(0xfffff1, 0x996879, 0.8));
+  const key = new THREE.DirectionalLight(0xfffaf0, 2);
+  key.position.set(-4, 6, 5);
+  scene.add(key);
+  const rim = new THREE.DirectionalLight(0xf2d9df, 1.3);
+  rim.position.set(4, 1, -2);
+  scene.add(rim);
+
+  const tooth = new THREE.Group();
+  const shape = new THREE.Shape();
+  shape.moveTo(0, 1.32);
+  shape.bezierCurveTo(-0.48, 1.63, -1.13, 1.53, -1.17, 0.95);
+  shape.bezierCurveTo(-1.22, 0.45, -0.83, 0.01, -0.77, -0.53);
+  shape.bezierCurveTo(-0.71, -1.08, -0.60, -1.65, -0.35, -1.55);
+  shape.bezierCurveTo(-0.10, -1.45, -0.25, -0.59, 0, -0.58);
+  shape.bezierCurveTo(0.25, -0.59, 0.10, -1.45, 0.35, -1.55);
+  shape.bezierCurveTo(0.60, -1.65, 0.71, -1.08, 0.77, -0.53);
+  shape.bezierCurveTo(0.83, 0.01, 1.22, 0.45, 1.17, 0.95);
+  shape.bezierCurveTo(1.13, 1.53, 0.48, 1.63, 0, 1.32);
+  const geometry = new THREE.ExtrudeGeometry(shape, { depth: 0.55, bevelEnabled: true, bevelThickness: 0.35, bevelSize: 0.23, bevelSegments: 12, curveSegments: 40, steps: 1 });
+  geometry.center();
+  const enamel = new THREE.MeshPhysicalMaterial({ color: 0xeee9d7, metalness: 0.025, roughness: 0.28, clearcoat: 1, clearcoatRoughness: 0.17, envMapIntensity: 0.8 });
+  const mesh = new THREE.Mesh(geometry, enamel);
+  tooth.add(mesh);
+  tooth.rotation.set(0.08, -0.31, -0.16);
+  scene.add(tooth);
+  const orbit = new THREE.Group();
+  const ringGeometry = new THREE.TorusGeometry(2.03, 0.012, 8, 128);
+  const ringMaterial = new THREE.MeshStandardMaterial({ color: 0x994f69, metalness: 0.3, roughness: 0.5, transparent: true, opacity: 0.7 });
+  const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+  ring.rotation.set(1.10, 0.3, -0.3);
+  orbit.add(ring);
+  const pearlGeometry = new THREE.SphereGeometry(0.075, 20, 16);
+  const pearlMaterial = new THREE.MeshStandardMaterial({ color: 0xb4a272, metalness: 0.55, roughness: 0.3 });
+  const pearl = new THREE.Mesh(pearlGeometry, pearlMaterial);
+  pearl.position.set(1.82, 0.47, 0.35);
+  orbit.add(pearl);
+  scene.add(orbit);
+  let inView = true;
+  let userPaused = reducedMotion.matches;
+  let pointerX = 0, pointerY = 0;
+  let elapsed = 0, lastTime = 0;
+  const button = document.querySelector<HTMLButtonElement>('#motion-toggle');
+  const hint = document.querySelector('#scene-hint');
+  if (hint) hint.textContent = 'Mueve el cursor. Explora el detalle.';
+  if (button) button.hidden = false;
+  const draw = () => renderer.render(scene, camera);
+  const resize = () => {
+    const width = host.clientWidth, height = host.clientHeight;
+    if (!width || !height) return;
+    renderer.setSize(width, height);
+    camera.aspect = width / height;
+    camera.position.z = width < 380 ? 10.8 : 10;
+    camera.updateProjectionMatrix();
+    draw();
+  };
+  const loop = (time: number) => {
+    if (!lastTime) lastTime = time;
+    elapsed += Math.min((time - lastTime) / 1000, 0.05);
+    lastTime = time;
+    tooth.rotation.y = THREE.MathUtils.lerp(tooth.rotation.y, -0.31 + pointerX * 0.48 + Math.sin(elapsed * 0.38) * 0.13, 0.035);
+    tooth.rotation.x = THREE.MathUtils.lerp(tooth.rotation.x, 0.08 + pointerY * 0.16, 0.035);
+    tooth.position.y = Math.sin(elapsed * 0.85) * 0.10;
+    tooth.rotation.z = -0.16 + Math.sin(elapsed * 0.4) * 0.035;
+    orbit.rotation.y = Math.sin(elapsed * 0.3) * 0.15;
+    draw();
+  };
+  const sync = () => {
+    const stopped = userPaused || reducedMotion.matches;
+    if (button) { button.textContent = reducedMotion.matches ? 'Movimiento reducido' : stopped ? 'Activar movimiento' : 'Pausar movimiento'; button.setAttribute('aria-pressed', String(stopped)); button.disabled = reducedMotion.matches; }
+    window.dispatchEvent(new CustomEvent('portfolio:pause-motion', { detail: stopped }));
+    lastTime = 0;
+    renderer.setAnimationLoop(!stopped && inView && !document.hidden ? loop : null);
+    draw();
+  };
+  const toggle = () => { userPaused = !userPaused; sync(); };
+  const pointerMove = (event: PointerEvent) => { if (event.pointerType !== 'mouse') return; const rect = host.getBoundingClientRect(); pointerX = (event.clientX - rect.left) / rect.width - 0.5; pointerY = (event.clientY - rect.top) / rect.height - 0.5; };
+  const resetPointer = () => { pointerX = 0; pointerY = 0; };
+  const preference = () => { userPaused = reducedMotion.matches; sync(); };
+  button?.addEventListener('click', toggle);
+  host.addEventListener('pointermove', pointerMove);
+  host.addEventListener('pointerleave', resetPointer);
+  document.addEventListener('visibilitychange', sync);
+  reducedMotion.addEventListener('change', preference);
+  const visibility = new IntersectionObserver(entries => { inView = entries[0].isIntersecting; sync(); });
+  visibility.observe(host);
+  const sizeObserver = new ResizeObserver(resize);
+  sizeObserver.observe(host);
+  resize();
+  host.classList.add('scene-ready');
+  sync();
+  const lost = (event: Event) => { event.preventDefault(); renderer.setAnimationLoop(null); host.classList.remove('scene-ready'); if (button) button.hidden = true; };
+  renderer.domElement.addEventListener('webglcontextlost', lost);
+  const cleanup = (event: PageTransitionEvent) => {
+    if (event.persisted) return;
+    renderer.setAnimationLoop(null); visibility.disconnect(); sizeObserver.disconnect();
+    document.removeEventListener('visibilitychange', sync); reducedMotion.removeEventListener('change', preference);
+    button?.removeEventListener('click', toggle); host.removeEventListener('pointermove', pointerMove); host.removeEventListener('pointerleave', resetPointer);
+    geometry.dispose(); enamel.dispose(); ringGeometry.dispose(); ringMaterial.dispose(); pearlGeometry.dispose(); pearlMaterial.dispose(); environmentMap.dispose(); renderer.dispose();
+  };
+  window.addEventListener('pagehide', cleanup, { once: true });
+}
